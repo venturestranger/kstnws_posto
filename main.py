@@ -22,7 +22,7 @@ bot = telebot.TeleBot(Config.TELEGRAM_TOKEN)
 
 def stop_check(message):
 	if message.text != None and message.text.startswith("/stop"):
-		bot.send_message(message.chat.id, "Генерация остановлена")
+		bot.send_message(message.chat.id, "Генерация остановлена", reply_markup=main_menu())
 		return True
 	else:
 		return False
