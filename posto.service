@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram Post Maker For Inner Use In Kostanay News
+After=network.target
+
+[Service]
+Type=simple
+User=debian
+WorkingDirectory=/home/debian/posto
+ExecStart=/home/debian/.python/bin/python3.11 /home/debian/posto/main.py
+Restart=always
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target
