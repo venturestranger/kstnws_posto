@@ -19,6 +19,7 @@ post = {
 shared = {}
 bot = telebot.TeleBot(Config.TELEGRAM_TOKEN)
 
+
 def stop_check(message):
 	if message.text != None and message.text.startswith("/stop"):
 		bot.send_message(message.chat.id, "Генерация остановлена")
@@ -26,7 +27,8 @@ def stop_check(message):
 	else:
 		return False
 
-def menu():
+
+def main_menu():
 	keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
 
 	keyboard.add(types.InlineKeyboardButton("/status"))
@@ -35,12 +37,14 @@ def menu():
 
 	return keyboard
 
-def process():
+
+def in_process_menu():
 	keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
 
 	keyboard.add(types.InlineKeyboardButton("/stop"))
 
 	return keyboard
+
 
 def request(method, endpoint, json=None, data=None):
 	headers = {
@@ -54,9 +58,11 @@ def request(method, endpoint, json=None, data=None):
 	elif method.lower() == 'put':
 		return requests.put(Config.URL + endpoint, json=json, data=data, headers=headers)
 
+
 @bot.message_handler(commands=['status'])
 def help_handler(message):
-	bot.send_message(message.chat.id, "200", reply_markup=menu())
+	bot.send_message(message.chat.id, "200", reply_markup=main_menu())
+
 
 @bot.message_handler(commands=['codes'])
 def help_handler(message):
@@ -68,29 +74,33 @@ def help_handler(message):
 	5. 405 Метод не разрешен
 	6. 500 Внутренняя ошибка сервера
 	7. 502 Сервер не предоставил точку доступа
-	""", reply_markup=menu())
+	""", reply_markup=main_menu())
+
 
 @bot.message_handler(commands=['upload'])
 def upload_post_handler(message):
 	shared[message.chat.id] = post.copy()
-	bot.send_message(message.chat.id, "Отправить название поста",  reply_markup=process())
+	bot.send_message(message.chat.id, "Отправить название поста",  reply_markup=in_process_menu())
 	bot.register_next_step_handler(message, title_handler)
+
 
 def title_handler(message):
 	if stop_check(message):
 		return
 	else:
 		shared[message.chat.id]["title"] = message.text
-		bot.send_message(message.chat.id, "Отправить наполнение поста", reply_markup=process())
+		bot.send_message(message.chat.id, "Отправить наполнение поста", reply_markup=in_process_menu())
 		bot.register_next_step_handler(message, content_handler)
+
 
 def content_handler(message):
 	if stop_check(message):
 		return
 	else:
 		shared[message.chat.id]["content"] = message.text
-		bot.send_message(message.chat.id, "Отправить хэштэги поста (каждое новое слово - новый хэштэг)", reply_markup=process())
+		bot.send_message(message.chat.id, "Отправить хэштэги поста (каждое новое слово - новый хэштэг)", reply_markup=in_process_menu())
 		bot.register_next_step_handler(message, hashtags_handler)
+
 
 def hashtags_handler(message):
 	if stop_check(message):
@@ -108,13 +118,15 @@ def hashtags_handler(message):
 		bot.send_message(message.chat.id, "Выбрать категорию поста", reply_markup=keyboard)
 		bot.register_next_step_handler(message, category_handler)
 
+
 def category_handler(message):
 	if stop_check(message):
 		return
 	else:
 		shared[message.chat.id]["category"] = message.text
-		bot.send_message(message.chat.id, "Отправить изображение поста", reply_markup=process())
+		bot.send_message(message.chat.id, "Отправить изображение поста", reply_markup=in_process_menu())
 		bot.register_next_step_handler(message, send_to_server_handler)
+
 
 def send_to_server_handler(message):
 	if stop_check(message):
@@ -132,17 +144,19 @@ def send_to_server_handler(message):
 			bot.send_message(message.chat.id,
 				"Ошибка при сохранении изображения, попробуйте еще раз")
 		else:
+			print("Managing", message.chat.id, "at", str(dt.now()))
 			bot.send_message(message.chat.id, "Связываемся с сервером")
 			resp = request('post', '/asset/upload', data=downloaded_file)
-			bot.send_message(message.chat.id, f"Статус сохранения изображения {resp.status_code}", reply_markup=menu())
-			print(resp)
+			bot.send_message(message.chat.id, f"Статус сохранения изображения {resp.status_code}", reply_markup=main_menu())
+			print("AM:", resp)
 
 			shared[message.chat.id]["picture_url"] = "$am1:" + resp.content.decode("utf-8")
 			shared[message.chat.id]["date_publication"] = shared[message.chat.id]["date_edit"] = str(dt.now())
 			resp = request('post', '/validate', json=shared[message.chat.id]) 
-			bot.send_message(message.chat.id, f"Статус сохранения поста {resp.status_code}", reply_markup=menu())
-			print(resp)
+			bot.send_message(message.chat.id, f"Статус сохранения поста {resp.status_code}", reply_markup=main_menu())
+			print("PPS:", resp)
 			print("----")
+
 
 if __name__=="__main__":
 	print("Bot Has Been Started")
